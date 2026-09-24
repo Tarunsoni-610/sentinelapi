@@ -86,7 +86,7 @@ export function ScanModal({ isOpen, onClose }) {
                     : 'border-line text-[#858d9a] bg-white'
                 }`}
               >
-                <CheckSquare className={`h-3 w-3 ${selectedModules[id] ? 'text-violet' : 'text-[#c0c4cc]'}`} />
+                <CheckSquare className={`h-3 w-3 ${selectedModules[id] ? 'text-[#6659e8]' : 'text-[#c0c4cc]'}`} />
                 <span>{label}</span>
               </button>
             ))}
@@ -97,17 +97,17 @@ export function ScanModal({ isOpen, onClose }) {
         <button
           onClick={handleStartScan}
           disabled={isScanning}
-          className="w-full h-10 rounded-md bg-violet hover:bg-violet-hover text-white font-semibold text-[11px] shadow-[0_3px_8px_rgba(101,88,232,0.25)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full h-10 rounded-md bg-[#6659e8] hover:bg-[#5549d4] text-white font-semibold text-[11px] shadow-[0_3px_8px_rgba(101,88,232,0.3)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
         >
           {isScanning ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Scanning API surface...</span>
+              <Loader2 className="h-4 w-4 animate-spin text-white" />
+              <span className="text-white">Scanning API surface...</span>
             </>
           ) : (
             <>
-              <Play className="h-3.5 w-3.5 fill-current" />
-              <span>Start security scan</span>
+              <Play className="h-3.5 w-3.5 fill-current text-white" />
+              <span className="text-white">Start security scan</span>
             </>
           )}
         </button>
