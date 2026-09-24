@@ -127,6 +127,7 @@ async function runScan({
 
   const scanResult = {
     id: scanId,
+    status: 'completed',
     targetUrl,
     startedAt,
     completedAt,

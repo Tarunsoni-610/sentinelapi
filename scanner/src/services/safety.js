@@ -29,16 +29,33 @@ async function verifySandboxTarget(targetUrl) {
   }
 
   const cleanUrl = targetUrl.replace(/\/+$/, '');
-  let res;
-  try {
-    res = await fetch(`${cleanUrl}/healthz`, { method: 'GET', signal: AbortSignal.timeout(5000) });
-  } catch (err) {
-    // Try fallback to root if healthz doesn't exist
+  const candidateUrls = [cleanUrl];
+  if (cleanUrl.includes('localhost')) {
+    candidateUrls.push(cleanUrl.replace('localhost', '127.0.0.1'));
+  } else if (cleanUrl.includes('127.0.0.1')) {
+    candidateUrls.push(cleanUrl.replace('127.0.0.1', 'localhost'));
+  }
+
+  let res = null;
+  let lastErr = null;
+
+  for (const u of candidateUrls) {
     try {
-      res = await fetch(cleanUrl, { method: 'GET', signal: AbortSignal.timeout(5000) });
-    } catch (_e2) {
-      throw new Error(`Target is unreachable at ${cleanUrl}: ${err.message}`);
+      res = await fetch(`${u}/healthz`, { method: 'GET', signal: AbortSignal.timeout(5000) });
+      if (res) break;
+    } catch (err) {
+      lastErr = err;
+      try {
+        res = await fetch(u, { method: 'GET', signal: AbortSignal.timeout(5000) });
+        if (res) break;
+      } catch (err2) {
+        lastErr = err2;
+      }
     }
+  }
+
+  if (!res) {
+    throw new Error(`Target is unreachable at ${cleanUrl}: ${lastErr?.message || 'fetch failed'}`);
   }
 
   const isSandboxHeader = res.headers.get('x-sentinelapi-sandbox') === 'true';
