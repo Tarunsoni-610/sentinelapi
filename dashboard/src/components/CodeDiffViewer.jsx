@@ -6,7 +6,7 @@ export function CodeDiffViewer({ diff, fileName = 'remediation.patch' }) {
 
   if (!diff) {
     return (
-      <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-500 font-mono">
+      <div className="p-4 rounded-xl bg-[#0a0b0e] border border-[#1f212a] text-xs text-ink-muted font-mono">
         No code diff available.
       </div>
     );
@@ -21,25 +21,25 @@ export function CodeDiffViewer({ diff, fileName = 'remediation.patch' }) {
   const lines = diff.split('\n');
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden shadow-inner">
+    <div className="rounded-xl border border-[#1f212a] bg-[#0a0b0e] overflow-hidden shadow-inner">
       {/* Diff Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-slate-900/80 border-b border-slate-800 text-xs font-mono">
-        <div className="flex items-center space-x-2 text-slate-300">
-          <FileCode2 className="h-4 w-4 text-indigo-400" />
+      <div className="flex items-center justify-between px-4 py-2 bg-[#12141a] border-b border-[#1f212a] text-xs font-mono">
+        <div className="flex items-center space-x-2 text-white">
+          <FileCode2 className="h-4 w-4 text-[#43f283]" />
           <span>{fileName}</span>
         </div>
         <button
           onClick={handleCopy}
-          className="flex items-center space-x-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-sans"
+          className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-[#1a1c24] hover:bg-[#232733] text-white transition-colors text-[11px] font-sans"
         >
           {copied ? (
             <>
-              <Check className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="text-emerald-400 font-medium">Copied</span>
+              <Check className="h-3.5 w-3.5 text-[#43f283]" />
+              <span className="text-[#43f283] font-medium">Copied</span>
             </>
           ) : (
             <>
-              <Copy className="h-3.5 w-3.5" />
+              <Copy className="h-3.5 w-3.5 text-ink-muted" />
               <span>Copy Diff</span>
             </>
           )}
@@ -47,22 +47,22 @@ export function CodeDiffViewer({ diff, fileName = 'remediation.patch' }) {
       </div>
 
       {/* Diff Content */}
-      <div className="p-3 font-mono text-xs overflow-x-auto leading-relaxed max-h-80 overflow-y-auto">
+      <div className="p-3 font-mono text-xs overflow-x-auto leading-relaxed max-h-80 overflow-y-auto selection:bg-[#43f283] selection:text-[#0a0b0e]">
         {lines.map((line, idx) => {
-          let lineStyle = 'text-slate-300';
+          let lineStyle = 'text-[#cbd5e1]';
           let bgStyle = '';
 
           if (line.startsWith('+') && !line.startsWith('+++')) {
-            lineStyle = 'text-emerald-400 font-medium';
-            bgStyle = 'bg-emerald-950/40 border-l-2 border-emerald-500 pl-2 -ml-2';
+            lineStyle = 'text-[#43f283] font-medium';
+            bgStyle = 'bg-[#43f283]/10 border-l-2 border-[#43f283] pl-2 -ml-2';
           } else if (line.startsWith('-') && !line.startsWith('---')) {
-            lineStyle = 'text-rose-400 font-medium';
-            bgStyle = 'bg-rose-950/40 border-l-2 border-rose-500 pl-2 -ml-2';
+            lineStyle = 'text-[#f43f5e] font-medium';
+            bgStyle = 'bg-[#f43f5e]/10 border-l-2 border-[#f43f5e] pl-2 -ml-2';
           } else if (line.startsWith('@@')) {
-            lineStyle = 'text-cyan-400 font-semibold';
-            bgStyle = 'bg-cyan-950/20 py-0.5';
+            lineStyle = 'text-[#818cf8] font-semibold';
+            bgStyle = 'bg-[#818cf8]/10 py-0.5';
           } else if (line.startsWith('---') || line.startsWith('+++')) {
-            lineStyle = 'text-slate-500 font-bold';
+            lineStyle = 'text-ink-muted font-bold';
           }
 
           return (

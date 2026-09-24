@@ -4,33 +4,33 @@
 
 @layer base {
   body {
-    background-color: #f7f8fa;
-    color: #202735;
+    background-color: #0a0b0e;
+    color: #f4f4f6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 }
 
-/* Custom crisp scrollbar */
+/* Awwwards Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f2f5;
+  background: #0a0b0e;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c7cbd3;
+  background: #252834;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9fa6b2;
+  background: #43f283;
 }
 
 .code-font {
-  font-family: 'DM Mono', 'Fira Code', monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }

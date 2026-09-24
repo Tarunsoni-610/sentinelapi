@@ -10,7 +10,6 @@ import {
   Sparkles,
   ChevronDown,
   MoreHorizontal,
-  ExternalLink,
 } from 'lucide-react';
 
 export function Sidebar({ currentTab, setCurrentTab }) {
@@ -19,30 +18,30 @@ export function Sidebar({ currentTab, setCurrentTab }) {
   const findingsCount = activeScan?.findings?.filter((f) => f.status === 'VULNERABLE')?.length ?? 4;
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-[236px] bg-white border-r border-line p-[22px_14px_14px] flex flex-col z-30 select-none">
+    <aside className="fixed inset-y-0 left-0 w-[236px] bg-[#0e1015] border-r border-[#1f212a] p-[22px_14px_14px] flex flex-col z-30 select-none">
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-2.5">
-        <div className="w-7 h-7 text-violet">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+        <div className="w-7 h-7 text-[#43f283]">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             <path d="m9 12 2 2 4-4" />
           </svg>
         </div>
-        <span className="font-display font-extrabold text-[21px] tracking-[-0.8px] text-[#232939]">
-          sentinel<span className="text-violet">.</span>
+        <span className="font-display font-extrabold text-[22px] tracking-[-0.8px] text-white">
+          sentinel<span className="text-[#43f283]">.</span>
         </span>
       </div>
 
       {/* Workspace Switcher */}
-      <div className="h-[52px] border border-line rounded-lg my-6 p-2 flex items-center gap-2.5 bg-white shadow-sm hover:border-slate-300 transition-colors cursor-pointer">
-        <div className="h-8 w-8 rounded-[7px] bg-[#f1efff] text-violet font-display font-bold text-sm flex items-center justify-center flex-shrink-0">
+      <div className="h-[52px] border border-[#1f212a] rounded-xl my-6 p-2 flex items-center gap-2.5 bg-[#13151c] hover:border-[#2f3240] transition-colors cursor-pointer shadow-inner">
+        <div className="h-8 w-8 rounded-[8px] bg-[#43f283]/15 text-[#43f283] font-display font-bold text-sm flex items-center justify-center flex-shrink-0 border border-[#43f283]/20">
           N
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <b className="text-[12px] font-bold text-ink leading-tight truncate">Northstar</b>
+          <b className="text-[12px] font-bold text-white leading-tight truncate font-sans">Northstar</b>
           <small className="text-[10px] text-ink-muted leading-tight">Workspace</small>
         </div>
-        <ChevronDown className="h-3.5 w-3.5 text-[#9298a5] mr-1" />
+        <ChevronDown className="h-3.5 w-3.5 text-[#5c5e6b] mr-1" />
       </div>
 
       {/* Workspace Nav Section */}
@@ -51,55 +50,55 @@ export function Sidebar({ currentTab, setCurrentTab }) {
           Workspace
         </div>
 
-        <nav className="space-y-0.5">
+        <nav className="space-y-1">
           <button
             onClick={() => setCurrentTab('overview')}
-            className={`w-full h-[36px] flex items-center gap-3 px-3 rounded-md text-[12px] font-medium transition-all ${
+            className={`w-full h-[38px] flex items-center gap-3 px-3 rounded-lg text-[12px] font-medium transition-all ${
               currentTab === 'overview'
-                ? 'bg-[#f3f2ff] text-[#584ed2] font-semibold'
-                : 'text-[#737b88] hover:bg-[#fafafc] hover:text-ink'
+                ? 'bg-[#43f283]/10 text-[#43f283] font-semibold border border-[#43f283]/20 shadow-[0_0_15px_rgba(67,242,131,0.08)]'
+                : 'text-ink-muted hover:bg-[#13151c] hover:text-white'
             }`}
           >
-            <LayoutDashboard className={`h-4 w-4 ${currentTab === 'overview' ? 'text-violet' : 'text-[#9098a6]'}`} />
+            <LayoutDashboard className={`h-4 w-4 ${currentTab === 'overview' ? 'text-[#43f283]' : 'text-ink-subtle'}`} />
             <span>Overview</span>
           </button>
 
           <button
             onClick={() => setCurrentTab('findings')}
-            className={`w-full h-[36px] flex items-center gap-3 px-3 rounded-md text-[12px] font-medium transition-all ${
+            className={`w-full h-[38px] flex items-center gap-3 px-3 rounded-lg text-[12px] font-medium transition-all ${
               currentTab === 'findings'
-                ? 'bg-[#f3f2ff] text-[#584ed2] font-semibold'
-                : 'text-[#737b88] hover:bg-[#fafafc] hover:text-ink'
+                ? 'bg-[#43f283]/10 text-[#43f283] font-semibold border border-[#43f283]/20 shadow-[0_0_15px_rgba(67,242,131,0.08)]'
+                : 'text-ink-muted hover:bg-[#13151c] hover:text-white'
             }`}
           >
-            <ShieldAlert className={`h-4 w-4 ${currentTab === 'findings' ? 'text-violet' : 'text-[#9098a6]'}`} />
+            <ShieldAlert className={`h-4 w-4 ${currentTab === 'findings' ? 'text-[#43f283]' : 'text-ink-subtle'}`} />
             <span>Findings</span>
-            <span className="ml-auto text-[10px] font-mono font-medium text-[#7770d7] bg-[#e8e6ff] rounded-full px-2 py-0.5">
+            <span className="ml-auto text-[10px] font-mono font-semibold text-[#f43f5e] bg-[#f43f5e]/15 border border-[#f43f5e]/30 rounded-full px-2 py-0.5">
               {findingsCount}
             </span>
           </button>
 
           <button
             onClick={() => setCurrentTab('endpoints')}
-            className={`w-full h-[36px] flex items-center gap-3 px-3 rounded-md text-[12px] font-medium transition-all ${
+            className={`w-full h-[38px] flex items-center gap-3 px-3 rounded-lg text-[12px] font-medium transition-all ${
               currentTab === 'endpoints'
-                ? 'bg-[#f3f2ff] text-[#584ed2] font-semibold'
-                : 'text-[#737b88] hover:bg-[#fafafc] hover:text-ink'
+                ? 'bg-[#43f283]/10 text-[#43f283] font-semibold border border-[#43f283]/20 shadow-[0_0_15px_rgba(67,242,131,0.08)]'
+                : 'text-ink-muted hover:bg-[#13151c] hover:text-white'
             }`}
           >
-            <Code2 className={`h-4 w-4 ${currentTab === 'endpoints' ? 'text-violet' : 'text-[#9098a6]'}`} />
+            <Code2 className={`h-4 w-4 ${currentTab === 'endpoints' ? 'text-[#43f283]' : 'text-ink-subtle'}`} />
             <span>Endpoints</span>
           </button>
 
           <button
             onClick={() => setCurrentTab('history')}
-            className={`w-full h-[36px] flex items-center gap-3 px-3 rounded-md text-[12px] font-medium transition-all ${
+            className={`w-full h-[38px] flex items-center gap-3 px-3 rounded-lg text-[12px] font-medium transition-all ${
               currentTab === 'history'
-                ? 'bg-[#f3f2ff] text-[#584ed2] font-semibold'
-                : 'text-[#737b88] hover:bg-[#fafafc] hover:text-ink'
+                ? 'bg-[#43f283]/10 text-[#43f283] font-semibold border border-[#43f283]/20 shadow-[0_0_15px_rgba(67,242,131,0.08)]'
+                : 'text-ink-muted hover:bg-[#13151c] hover:text-white'
             }`}
           >
-            <History className={`h-4 w-4 ${currentTab === 'history' ? 'text-violet' : 'text-[#9098a6]'}`} />
+            <History className={`h-4 w-4 ${currentTab === 'history' ? 'text-[#43f283]' : 'text-ink-subtle'}`} />
             <span>Scan history</span>
           </button>
         </nav>
@@ -111,20 +110,20 @@ export function Sidebar({ currentTab, setCurrentTab }) {
           Tools
         </div>
 
-        <nav className="space-y-0.5">
+        <nav className="space-y-1">
           <button
             onClick={() => setIsSpecModalOpen(true)}
-            className="w-full h-[36px] flex items-center gap-3 px-3 rounded-md text-[12px] font-medium text-[#737b88] hover:bg-[#fafafc] hover:text-ink transition-all"
+            className="w-full h-[38px] flex items-center gap-3 px-3 rounded-lg text-[12px] font-medium text-ink-muted hover:bg-[#13151c] hover:text-white transition-all"
           >
-            <FileCode className="h-4 w-4 text-[#9098a6]" />
+            <FileCode className="h-4 w-4 text-ink-subtle" />
             <span>Import API spec</span>
           </button>
 
           <button
             onClick={() => setIsApiKeyModalOpen(true)}
-            className="w-full h-[36px] flex items-center gap-3 px-3 rounded-md text-[12px] font-medium text-[#737b88] hover:bg-[#fafafc] hover:text-ink transition-all"
+            className="w-full h-[38px] flex items-center gap-3 px-3 rounded-lg text-[12px] font-medium text-ink-muted hover:bg-[#13151c] hover:text-white transition-all"
           >
-            <Settings className="h-4 w-4 text-[#9098a6]" />
+            <Settings className="h-4 w-4 text-ink-subtle" />
             <span>Settings & LLM</span>
           </button>
         </nav>
@@ -133,39 +132,39 @@ export function Sidebar({ currentTab, setCurrentTab }) {
       {/* Bottom Area */}
       <div className="mt-auto space-y-3.5">
         {/* Plan Credits Card */}
-        <div className="bg-[#f8f8fd] border border-[#ececf4] rounded-lg p-3">
-          <div className="flex justify-between items-center text-[9px] font-mono text-[#959baa] tracking-wider uppercase">
+        <div className="bg-[#13151c] border border-[#1f212a] rounded-xl p-3.5 shadow-card">
+          <div className="flex justify-between items-center text-[9px] font-mono text-ink-muted tracking-wider uppercase">
             <span>Scan Credits</span>
-            <Sparkles className="h-3 w-3 text-violet" />
+            <Sparkles className="h-3 w-3 text-[#43f283]" />
           </div>
 
           <div className="my-2.5 flex items-baseline gap-1.5">
-            <b className="font-display font-bold text-[19px] text-ink">12</b>
-            <span className="text-[10px] text-[#9399a6]">/ 20 this month</span>
+            <b className="font-display font-bold text-[20px] text-white">12</b>
+            <span className="text-[10px] text-ink-muted">/ 20 this month</span>
           </div>
 
-          <div className="h-1 w-full bg-[#e4e4f0] rounded-full overflow-hidden">
-            <div className="h-full bg-violet rounded-full" style={{ width: '60%' }} />
+          <div className="h-1.5 w-full bg-[#1e2028] rounded-full overflow-hidden">
+            <div className="h-full bg-[#43f283] rounded-full shadow-[0_0_8px_rgba(67,242,131,0.5)]" style={{ width: '60%' }} />
           </div>
 
           <button
             onClick={() => setCurrentTab('history')}
-            className="block mt-2.5 text-[10px] font-semibold text-[#6258d4] hover:underline"
+            className="block mt-2.5 text-[10px] font-semibold text-[#43f283] hover:underline"
           >
             View plans ↗
           </button>
         </div>
 
         {/* Profile */}
-        <div className="pt-3 border-t border-line flex items-center gap-2.5 px-1">
-          <div className="w-[30px] h-[30px] rounded-full bg-[#f8e8db] text-[#9c6244] text-[10px] font-bold flex items-center justify-center">
+        <div className="pt-3 border-t border-[#1f212a] flex items-center gap-2.5 px-1">
+          <div className="w-[30px] h-[30px] rounded-full bg-[#181a24] border border-[#2b2e3c] text-[#43f283] text-[10px] font-bold flex items-center justify-center font-mono">
             AM
           </div>
           <div className="flex flex-col min-w-0 flex-1">
-            <b className="text-[11px] font-bold text-ink leading-tight truncate">Alex Morgan</b>
+            <b className="text-[11px] font-bold text-white leading-tight truncate">Alex Morgan</b>
             <small className="text-[9px] text-ink-muted leading-tight">Security engineer</small>
           </div>
-          <MoreHorizontal className="h-4 w-4 text-[#a2a7b0] cursor-pointer hover:text-ink" />
+          <MoreHorizontal className="h-4 w-4 text-ink-subtle cursor-pointer hover:text-white" />
         </div>
       </div>
     </aside>

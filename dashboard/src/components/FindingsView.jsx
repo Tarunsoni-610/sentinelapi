@@ -28,13 +28,13 @@ export function FindingsView({ onSelectFinding }) {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="font-display font-bold text-[18px] text-[#252c3a] tracking-tight">
+          <h2 className="font-display font-bold text-[22px] text-white tracking-tight">
             All API Security Findings ({findings.length})
           </h2>
-          <p className="text-[11px] text-ink-muted">
+          <p className="text-[12px] text-ink-muted">
             Detailed vulnerability assessment breakdown and OWASP API compliance posture.
           </p>
         </div>
@@ -42,26 +42,26 @@ export function FindingsView({ onSelectFinding }) {
         <div className="flex items-center gap-2">
           {/* Search */}
           <div className="relative">
-            <Search className="h-3.5 w-3.5 text-[#9ba1ad] absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="h-3.5 w-3.5 text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search findings..."
-              className="pl-8 pr-3 py-1.5 text-[11px] rounded-md bg-white border border-line text-ink focus:outline-none focus:border-violet"
+              className="pl-8 pr-3.5 py-1.5 text-[11px] rounded-xl bg-[#12141a] border border-[#1f212a] text-white placeholder-ink-subtle focus:outline-none focus:border-[#43f283]"
             />
           </div>
 
           {/* Filter Pills */}
-          <div className="flex bg-white p-0.5 rounded-md border border-line text-[10px]">
+          <div className="flex bg-[#12141a] p-1 rounded-xl border border-[#1f212a] text-[10px]">
             {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'VULNERABLE', 'FIX_VERIFIED'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setFilterSeverity(tab)}
-                className={`px-2 py-1 rounded font-medium transition-all ${
+                className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
                   filterSeverity === tab
-                    ? 'bg-[#f0efff] text-violet font-semibold'
-                    : 'text-[#737b88] hover:text-ink'
+                    ? 'bg-[#43f283]/15 text-[#43f283] font-semibold border border-[#43f283]/30'
+                    : 'text-ink-muted hover:text-white'
                 }`}
               >
                 {tab}
@@ -72,56 +72,58 @@ export function FindingsView({ onSelectFinding }) {
       </div>
 
       {/* Findings Table / Card List */}
-      <div className="bg-white border border-line rounded-lg divide-y divide-[#f0f1f3] shadow-2xs overflow-hidden">
+      <div className="bg-[#12141a] border border-[#1f212a] rounded-2xl divide-y divide-[#1c1e28] shadow-card overflow-hidden">
         {filtered.map((finding) => {
           const isFixed = finding.status === 'FIX_VERIFIED';
           return (
             <div
               key={finding.id}
               onClick={() => onSelectFinding(finding)}
-              className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#fafafc] cursor-pointer transition-colors"
+              className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#161822] cursor-pointer transition-colors"
             >
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center gap-2">
+              <div className="space-y-1.5 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span
-                    className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
+                    className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border ${
                       finding.severity === 'CRITICAL'
-                        ? 'bg-[#fff0ef] text-coral'
+                        ? 'bg-[#f43f5e]/10 text-[#f43f5e] border-[#f43f5e]/30'
                         : finding.severity === 'HIGH'
-                        ? 'bg-[#fff4eb] text-amber'
-                        : 'bg-[#fff8e8] text-[#b58d3d]'
+                        ? 'bg-[#fbbf24]/10 text-[#fbbf24] border-[#fbbf24]/30'
+                        : 'bg-[#cbd5e1]/10 text-[#cbd5e1] border-[#cbd5e1]/20'
                     }`}
                   >
                     {finding.severity}
                   </span>
 
                   <span
-                    className={`text-[9px] font-bold px-2 py-0.5 rounded ${
-                      isFixed ? 'bg-[#edf8f2] text-[#3e9b72]' : 'bg-[#fff0ef] text-coral'
+                    className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${
+                      isFixed
+                        ? 'bg-[#43f283]/10 text-[#43f283] border-[#43f283]/30 shadow-[0_0_8px_rgba(67,242,131,0.2)]'
+                        : 'bg-[#f43f5e]/10 text-[#f43f5e] border-[#f43f5e]/30'
                     }`}
                   >
                     {isFixed ? 'FIX VERIFIED' : 'VULNERABLE'}
                   </span>
 
-                  <span className="text-[10px] font-mono text-[#7166d9] bg-[#f0efff] px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-mono text-[#818cf8] bg-[#818cf8]/10 border border-[#818cf8]/20 px-2 py-0.5 rounded">
                     {finding.owaspId}
                   </span>
 
-                  <code className="text-[10px] font-mono bg-[#f3f4f6] text-[#777f8e] px-1.5 py-0.5 rounded">
+                  <code className="text-[10px] font-mono bg-[#1a1c26] text-[#cbd5e1] border border-[#2b2e3e] px-2 py-0.5 rounded">
                     {finding.method} {finding.path}
                   </code>
                 </div>
 
-                <h3 className="font-display font-bold text-[13px] text-[#333a48]">
+                <h3 className="font-display font-bold text-[14px] text-white">
                   {finding.title}
                 </h3>
-                <p className="text-[11px] text-[#737b88] line-clamp-1">{finding.description}</p>
+                <p className="text-[11px] text-ink-muted line-clamp-1">{finding.description}</p>
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
-                <button className="h-7 px-3 rounded-[5px] bg-[#f0efff] text-violet text-[10px] font-semibold flex items-center gap-1 hover:bg-[#e4e1ff] transition-colors">
+                <button className="h-8 px-3.5 rounded-lg bg-[#1a1d26] hover:bg-[#232734] border border-[#272b3a] text-white text-[11px] font-semibold flex items-center gap-1.5 transition-colors">
                   <span>Inspect</span>
-                  <ArrowRight className="h-3 w-3" />
+                  <ArrowRight className="h-3 w-3 text-[#43f283]" />
                 </button>
               </div>
             </div>
