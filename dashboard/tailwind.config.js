@@ -5,26 +5,44 @@ export default {
   theme: {
     extend: {
       colors: {
-        cyber: {
-          dark: '#0a0d14',
-          card: '#111726',
-          border: '#1e293b',
-          accent: '#6366f1',
+        ink: {
+          DEFAULT: '#202735',
+          heading: '#252c3a',
+          muted: '#8991a0',
+          subtle: '#a5aab4',
+        },
+        line: {
+          DEFAULT: '#e9ebef',
+          light: '#f0f1f4',
+        },
+        canvas: '#f7f8fa',
+        violet: {
+          DEFAULT: '#6659e8',
+          hover: '#5549d4',
+          bg: '#f0efff',
+          tint: '#f6f5ff',
+          dark: '#39365d',
+        },
+        emerald: {
+          DEFAULT: '#22996b',
+          soft: '#f1f8f5',
+          border: '#e4f1eb',
+        },
+        coral: {
+          DEFAULT: '#cf6666',
+          soft: '#fff0ef',
+          border: '#ffdcd8',
+        },
+        amber: {
+          DEFAULT: '#c18934',
+          soft: '#fff8eb',
+          border: '#fbebd2',
         },
       },
       fontFamily: {
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-      },
-      animation: {
-        'pulse-fast': 'pulse 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'glow': 'glow 2s ease-in-out infinite alternate',
-      },
-      keyframes: {
-        glow: {
-          '0%': { boxShadow: '0 0 5px rgba(99, 102, 241, 0.2), 0 0 10px rgba(99, 102, 241, 0.2)' },
-          '100%': { boxShadow: '0 0 15px rgba(99, 102, 241, 0.6), 0 0 25px rgba(99, 102, 241, 0.4)' },
-        },
+        sans: ['"DM Sans"', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['"Manrope"', '"DM Sans"', 'sans-serif'],
+        mono: ['"DM Mono"', '"Fira Code"', 'monospace'],
       },
     },
   },

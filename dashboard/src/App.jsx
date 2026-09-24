@@ -1,120 +1,165 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from './context/AppContext';
-import { Navbar } from './components/Navbar';
-import { ScanLauncher } from './components/ScanLauncher';
-import { MetricsOverview } from './components/MetricsOverview';
-import { LiveLogsTerminal } from './components/LiveLogsTerminal';
-import { FindingsList } from './components/FindingsList';
-import { ControlsList } from './components/ControlsList';
-import { FindingDetailModal } from './components/FindingDetailModal';
+import { Sidebar } from './components/Sidebar';
+import { TopBar } from './components/TopBar';
+import { BannerHero } from './components/BannerHero';
+import { SecurityOverviewCards } from './components/SecurityOverviewCards';
+import { PriorityFindingsPanel } from './components/PriorityFindingsPanel';
+import { RecentScansPanel } from './components/RecentScansPanel';
+import { FindingsView } from './components/FindingsView';
+import { EndpointsView } from './components/EndpointsView';
+import { HistoryView } from './components/HistoryView';
+import { FindingDrawer } from './components/FindingDrawer';
+import { ScanModal } from './components/ScanModal';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { SpecViewerModal } from './components/SpecViewerModal';
-import { Shield, Sparkles, AlertCircle, ArrowUpRight, Zap, GitPullRequest } from 'lucide-react';
+import { LiveTelemetryModal } from './components/LiveTelemetryModal';
+import { Sparkles, Plus } from 'lucide-react';
 
 export function App() {
   const {
     activeScan,
+    triggerScan,
     selectedFinding,
     setSelectedFinding,
-    triggerScan,
-    scannerStatus,
-    sandboxStatus,
   } = useApp();
 
-  // Auto-launch initial scan once target is verified
+  const [currentTab, setCurrentTab] = useState('overview'); // 'overview' | 'findings' | 'endpoints' | 'history'
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [isTelemetryModalOpen, setIsTelemetryModalOpen] = useState(false);
+
+  // Auto-run initial scan on mount against sandbox
   useEffect(() => {
     let mounted = true;
-    const initialCheck = async () => {
+    const initialRun = async () => {
       try {
         if (mounted && !activeScan) {
           await triggerScan();
         }
       } catch (_e) {
-        // user can manually click scan
+        // user can manually trigger
       }
     };
-    initialCheck();
+    initialRun();
     return () => {
       mounted = false;
     };
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Top Navigation */}
-      <Navbar />
+    <div className="min-h-screen bg-canvas text-ink font-sans flex antialiased">
+      {/* 1. Left Sidebar */}
+      <Sidebar currentTab={currentTab} setCurrentTab={setCurrentTab} />
 
-      {/* Main Dashboard Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-        {/* Banner Alert if Services are Offline */}
-        {!scannerStatus.online && !scannerStatus.checking && (
-          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between">
-            <div className="flex items-center space-x-2.5">
-              <AlertCircle className="h-4 w-4 text-rose-400 flex-shrink-0" />
-              <span>
-                Scanner service (:5000) is currently offline. Start the scanner using{' '}
-                <code className="bg-rose-950/60 px-1.5 py-0.5 rounded text-white font-mono">npm start</code> in{' '}
-                <code className="bg-rose-950/60 px-1.5 py-0.5 rounded text-white font-mono">scanner/</code>.
-              </span>
+      {/* 2. Main Canvas */}
+      <div className="ml-[236px] flex-1 flex flex-col min-h-screen">
+        {/* Topbar */}
+        <TopBar
+          currentTab={currentTab}
+          onOpenNewScan={() => setIsScanModalOpen(true)}
+        />
+
+        {/* Page Content */}
+        <main className="flex-1 max-w-[1200px] w-full mx-auto px-8 sm:px-11 py-9">
+          {/* Page Heading & New Scan CTA */}
+          <div className="flex items-start sm:items-center justify-between gap-4 mb-6">
+            <div>
+              {/* Eyebrow */}
+              <div className="flex items-center gap-2 text-[9px] font-mono tracking-wider text-ink-subtle uppercase mb-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3caf7d]" />
+                <span>API Security Posture</span>
+              </div>
+
+              {/* Title with sparkle */}
+              <h1 className="font-display font-bold text-[27px] text-ink-heading tracking-[-0.8px] leading-tight flex items-center gap-2">
+                <span>Good morning, Alex</span>
+                <span className="text-violet text-[20px]">✳</span>
+              </h1>
+
+              {/* Subtitle */}
+              <p className="text-[12px] text-ink-muted mt-1">
+                Here's what's happening across your API surface.
+              </p>
             </div>
-          </div>
-        )}
 
-        {/* Hero Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
-          <div className="space-y-1">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
-              <span>API Posture & Automated Triage</span>
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-2xl">
-              Real-time stateful authorization boundary probing, PII leakage detection, and AI-assisted git patch synthesis.
-            </p>
+            {/* + New Scan Button */}
+            <button
+              onClick={() => setIsScanModalOpen(true)}
+              className="h-[38px] bg-violet hover:bg-violet-hover text-white font-semibold text-[11px] rounded-[6px] px-4 shadow-[0_3px_8px_rgba(101,88,232,0.25)] hover:-translate-y-0.5 transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer"
+            >
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+              <span>New scan</span>
+            </button>
           </div>
 
-          <div className="flex items-center space-x-2 text-xs">
-            <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 flex items-center space-x-2">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-              <span>LLM Engine: Gemini / OpenAI</span>
+          {/* TAB 1: OVERVIEW */}
+          {currentTab === 'overview' && (
+            <div className="space-y-0">
+              {/* Banner Hero Card */}
+              <BannerHero onTriggerScan={() => setIsScanModalOpen(true)} />
+
+              {/* Security Overview 4 Cards */}
+              <SecurityOverviewCards
+                onOpenReport={() => setCurrentTab('findings')}
+              />
+
+              {/* 2-Column Grid: Priority Findings (Left) & Recent Scans (Right) */}
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,1fr)] gap-3.5">
+                <PriorityFindingsPanel
+                  onSelectFinding={(f) => setSelectedFinding(f)}
+                  onNavigateFindings={() => setCurrentTab('findings')}
+                />
+                <RecentScansPanel
+                  onOpenTelemetry={() => setIsTelemetryModalOpen(true)}
+                />
+              </div>
             </div>
-            <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 flex items-center space-x-2">
-              <GitPullRequest className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Verified Patch Loop</span>
-            </div>
-          </div>
-        </div>
+          )}
 
-        {/* 1. Scan Configuration & Launcher */}
-        <ScanLauncher />
+          {/* TAB 2: FINDINGS */}
+          {currentTab === 'findings' && (
+            <FindingsView
+              onSelectFinding={(f) => setSelectedFinding(f)}
+            />
+          )}
 
-        {/* 2. Live Telemetry Terminal */}
-        <LiveLogsTerminal />
+          {/* TAB 3: ENDPOINTS */}
+          {currentTab === 'endpoints' && <EndpointsView />}
 
-        {/* 3. Executive Metrics & Security Score */}
-        <MetricsOverview />
+          {/* TAB 4: SCAN HISTORY */}
+          {currentTab === 'history' && (
+            <HistoryView
+              onOpenNewScan={() => setIsScanModalOpen(true)}
+              onOpenTelemetry={() => setIsTelemetryModalOpen(true)}
+            />
+          )}
+        </main>
 
-        {/* 4. Findings Explorer */}
-        <FindingsList />
+        {/* Footer */}
+        <footer className="border-t border-line py-5 px-8 sm:px-11 text-[10px] text-ink-muted flex items-center justify-between">
+          <span>SentinelAPI • Offensive API Security & Autonomous Remediation</span>
+          <span className="font-mono text-[9px]">Sandbox :4000 • Scanner :5000 • Dashboard :5173</span>
+        </footer>
+      </div>
 
-        {/* 5. Verified Controls */}
-        <ControlsList />
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-slate-950 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© {new Date().getFullYear()} SentinelAPI • Offensive API Security & Autonomous Defense</p>
-          <p className="font-mono text-[11px] text-slate-600">Phase 2 Scanner (:5000) • Phase 3 Dashboard (:5173)</p>
-        </div>
-      </footer>
-
-      {/* Modals and Drawers */}
+      {/* Slide-in Finding Detail Drawer */}
       {selectedFinding && (
-        <FindingDetailModal
+        <FindingDrawer
           finding={selectedFinding}
           onClose={() => setSelectedFinding(null)}
         />
       )}
+
+      {/* Modals */}
+      <ScanModal
+        isOpen={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+      />
+
+      <LiveTelemetryModal
+        isOpen={isTelemetryModalOpen}
+        onClose={() => setIsTelemetryModalOpen(false)}
+      />
 
       <ApiKeyModal />
       <SpecViewerModal />
