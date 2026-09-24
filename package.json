@@ -1,0 +1,16 @@
+{
+  "name": "sentinelapi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SentinelAPI — Autonomous API Security Posture Scanner & AI Remediation Engine",
+  "scripts": {
+    "install:all": "npm --prefix sandbox-api install && npm --prefix scanner install && npm --prefix dashboard install",
+    "test": "npm --prefix sandbox-api test && npm --prefix scanner test",
+    "test:sandbox": "npm --prefix sandbox-api test",
+    "test:scanner": "npm --prefix scanner test",
+    "start:sandbox": "node sandbox-api/src/server.js",
+    "start:scanner": "node scanner/src/server.js",
+    "dev:dashboard": "npm --prefix dashboard run dev",
+    "build:dashboard": "npm --prefix dashboard run build"
+  }
+}
