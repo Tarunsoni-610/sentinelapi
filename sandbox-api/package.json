@@ -1,0 +1,19 @@
+{
+  "name": "sentinelapi-sandbox",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Intentionally vulnerable demo API for SentinelAPI. NEVER deploy this.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "validate:spec": "node scripts/validate-spec.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "^10.1.1"
+  }
+}

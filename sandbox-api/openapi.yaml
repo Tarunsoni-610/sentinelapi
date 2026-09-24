@@ -1,0 +1,277 @@
+openapi: 3.0.3
+info:
+  title: SentinelAPI Vulnerable Sandbox
+  version: 1.0.0
+  description: >
+    Intentionally vulnerable demo API used to showcase SentinelAPI.
+    The spec describes the INTENDED behaviour; the implementation deviates in places (that is what the scanner finds).
+servers:
+  - url: http://localhost:4000
+tags:
+  - name: auth
+  - name: orders
+  - name: users
+  - name: invoices
+  - name: admin
+  - name: products
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    LoginResponse:
+      type: object
+      properties:
+        token: { type: string }
+        user:
+          type: object
+          properties:
+            id: { type: integer }
+            email: { type: string }
+            name: { type: string }
+    OrderCreate:
+      type: object
+      required: [item, quantity]
+      properties:
+        item: { type: string, example: Standing Desk }
+        quantity: { type: integer, minimum: 1, example: 1 }
+        shippingAddress: { type: string, example: 221B Baker Street }
+    Order:
+      type: object
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        item: { type: string }
+        quantity: { type: integer }
+        shippingAddress: { type: string }
+        status: { type: string }
+        createdAt: { type: string, format: date-time }
+    UserProfile:
+      description: What a client is meant to see about themselves. Nothing else should be returned.
+      type: object
+      additionalProperties: false
+      properties:
+        id: { type: integer }
+        email: { type: string }
+        name: { type: string }
+        role: { type: string, enum: [user, admin] }
+    InvoiceCreate:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number, minimum: 0.01, example: 49.99 }
+        description: { type: string }
+    Invoice:
+      type: object
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        amount: { type: number }
+        description: { type: string }
+        createdAt: { type: string, format: date-time }
+    AdminStats:
+      type: object
+      properties:
+        totalUsers: { type: integer }
+        totalOrders: { type: integer }
+        totalInvoices: { type: integer }
+        users:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              email: { type: string }
+              role: { type: string }
+    Product:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        price: { type: number }
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Authenticated but not allowed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: Too many requests
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+paths:
+  /api/auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Exchange credentials for a bearer token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /api/users/me:
+    get:
+      tags: [users]
+      operationId: getMyProfile
+      summary: Get the caller's own profile
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: The caller's profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserProfile' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/orders:
+    post:
+      tags: [orders]
+      operationId: createOrder
+      summary: Create an order owned by the caller
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OrderCreate' }
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    get:
+      tags: [orders]
+      operationId: listMyOrders
+      summary: List the caller's own orders
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Orders owned by the caller
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/orders/{id}:
+    get:
+      tags: [orders]
+      operationId: getOrder
+      summary: Get one order (owner only)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: The order
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/invoices:
+    post:
+      tags: [invoices]
+      operationId: createInvoice
+      summary: Create an invoice owned by the caller
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InvoiceCreate' }
+      responses:
+        '201':
+          description: Invoice created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Invoice' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/invoices/{id}:
+    get:
+      tags: [invoices]
+      operationId: getInvoice
+      summary: Get one invoice (owner only)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: The invoice
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Invoice' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/admin/stats:
+    get:
+      tags: [admin]
+      operationId: getAdminStats
+      summary: Admin-only platform statistics
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Platform statistics
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStats' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/products:
+    get:
+      tags: [products]
+      operationId: listProducts
+      summary: Public product catalogue (rate limited)
+      security: []
+      responses:
+        '200':
+          description: Products
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        

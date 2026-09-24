@@ -1,0 +1,18 @@
+services:
+  sandbox-api:
+    build: ./sandbox-api
+    container_name: sentinel-sandbox
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: "4000"
+      SANDBOX_CONTROL_ENABLED: "true"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Phase 2+ (added later): scanner (port 5000) and dashboard (port 5173)
+  
