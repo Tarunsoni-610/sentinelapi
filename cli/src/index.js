@@ -677,6 +677,45 @@ export async function createProgram() {
       }
     });
 
+  // Command: config
+  const configCmd = program.command('config').description('Inspect or manage Sentinel CLI configuration');
+
+  configCmd
+    .command('show', { isDefault: true })
+    .description('Display current sentinel.config.json configuration')
+    .option('-j, --json', 'Output raw JSON')
+    .action((options) => {
+      const cfg = loadConfigFile();
+      if (options.json) {
+        console.log(JSON.stringify(cfg, null, 2));
+      } else {
+        console.log('\n' + boxen(JSON.stringify(cfg, null, 2), {
+          padding: 1,
+          borderStyle: 'round',
+          borderColor: '#818cf8',
+          title: chalk.bold.hex('#818cf8')(' SENTINEL CONFIGURATION '),
+        }));
+      }
+    });
+
+  configCmd
+    .command('set <key> <value>')
+    .description('Set a configuration parameter (e.g. sentinel config set target http://localhost:8080)')
+    .action(async (key, value) => {
+      const { updateConfigKey } = await import('./configManager.js');
+      const res = updateConfigKey(key, value);
+      console.log(chalk.green(`\n✔ Configuration updated: ${chalk.bold(res.key)} = ${chalk.cyan(JSON.stringify(res.value))}\n`));
+    });
+
+  configCmd
+    .command('init')
+    .description('Initialize sample sentinel.config.json in current directory')
+    .action(async () => {
+      const { DEFAULT_CONFIG, saveConfig } = await import('./configManager.js');
+      const filePath = saveConfig(DEFAULT_CONFIG);
+      console.log(chalk.green(`\n✔ Created sample configuration at ${chalk.bold(filePath)}\n`));
+    });
+
   // If invoked without any subcommand and in TTY -> Launch interactive wizard
   if (process.argv.length <= 2) {
     if (process.stdin.isTTY) {
