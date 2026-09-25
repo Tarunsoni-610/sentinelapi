@@ -10,6 +10,7 @@ import { cloneOrInspectRepo, readWorkspaceFile } from './repoManager.js';
 import { renderAgentHeader, renderRepoSummary, renderDiff } from './formatter.js';
 import { parseOpenApiSpec } from './specParser.js';
 import { runAuditOrchestration } from './orchestrator.js';
+import { loadConfig, updateConfigKey } from './configManager.js';
 
 export async function runAgentChatSession(initialOptions = {}) {
   let activeAgentId = initialOptions.agent || 'owasp_auditor';
@@ -196,6 +197,30 @@ export async function runAgentChatSession(initialOptions = {}) {
           console.log(chalk.green('\n✔ Chat memory cleared.\n'));
           break;
 
+        case 'config': {
+          const cfg = loadConfig();
+          console.log('\n' + boxen(JSON.stringify(cfg, null, 2), {
+            padding: 1,
+            margin: { top: 0, bottom: 1 },
+            borderStyle: 'round',
+            borderColor: '#818cf8',
+            title: chalk.bold.hex('#818cf8')(' CURRENT SENTINEL CONFIG '),
+          }));
+          break;
+        }
+
+        case 'set': {
+          const [key, ...valParts] = arg.split(' ');
+          const val = valParts.join(' ').trim();
+          if (!key || !val) {
+            console.log(chalk.yellow('Usage: /set <key> <value> (e.g. /set target http://localhost:8080)'));
+          } else {
+            const res = updateConfigKey(key, val);
+            console.log(chalk.green(`\n✔ Updated ${chalk.bold(res.key)} = ${chalk.cyan(JSON.stringify(res.value))} in sentinel.config.json\n`));
+          }
+          break;
+        }
+
         case 'export': {
           const exportPath = path.join(process.cwd(), `sentinel-agent-chat-${Date.now()}.md`);
           const markdown = [
@@ -265,6 +290,8 @@ function printChatHelp() {
     `  ${chalk.cyan('/repo <url|path>')}- Clone a remote GitHub repo or set local workspace`,
     `  ${chalk.cyan('/file <relPath>')}  - Read and inject a code file into the agent context`,
     `  ${chalk.cyan('/spec [path]')}     - Parse and load an OpenAPI contract into context`,
+    `  ${chalk.cyan('/config')}          - Display current configuration settings`,
+    `  ${chalk.cyan('/set <key> <val>')} - Update configuration key live (e.g. /set target http://...)`,
     `  ${chalk.cyan('/scan')}            - Run stateful OWASP probe scan against target API`,
     `  ${chalk.cyan('/clear')}           - Reset conversation memory`,
     `  ${chalk.cyan('/export')}          - Save conversation transcript to Markdown file`,
