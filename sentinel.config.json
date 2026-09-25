@@ -1,0 +1,14 @@
+{
+  "target": "http://localhost:4000",
+  "spec": "./sandbox-api/openapi.yaml",
+  "scannerUrl": "http://localhost:5000",
+  "llmProvider": "gemini",
+  "modules": [
+    "bola",
+    "broken_auth",
+    "excessive_data_exposure",
+    "rate_limiting"
+  ],
+  "failOn": "high",
+  "enrichWithAi": true
+}

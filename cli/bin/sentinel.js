@@ -1,17 +1,15 @@
 #!/usr/bin/env node
-'use strict';
-
-const { createProgram } = require('../src/index');
+import { createProgram } from '../src/index.js';
 
 async function main() {
-  const program = createProgram();
-  if (program) {
-    try {
+  try {
+    const program = await createProgram();
+    if (program) {
       await program.parseAsync(process.argv);
-    } catch (err) {
-      console.error(`Sentinel CLI execution error: ${err.message}`);
-      process.exit(1);
     }
+  } catch (err) {
+    console.error(`Sentinel CLI execution error: ${err.message}`);
+    process.exit(1);
   }
 }
 
