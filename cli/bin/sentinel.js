@@ -3,9 +3,9 @@ import { createProgram } from '../src/index.js';
 
 async function main() {
   try {
-    const program = await createProgram();
+    const program = await createProgram(process.argv);
     if (program) {
-      await program.parseAsync(process.argv);
+      await program.parseAsync(program.normalizedArgv || process.argv);
     }
   } catch (err) {
     console.error(`Sentinel CLI execution error: ${err.message}`);
