@@ -12,9 +12,9 @@ SentinelAPI is structured into three microservices:
 
 ```
 ┌─────────────────────────┐      ┌─────────────────────────┐      ┌─────────────────────────┐
-│       dashboard/        │      │        scanner/         │      │      sandbox-api/       │
-│    React + Vite + TW    │ ───> │     Express (5000)      │ ───> │     Express (4000)      │
-│       (Port 5173)       │      │  Stateful DAST + LLM    │      │   Vulnerable Testbed    │
+│     Command Line        │      │        scanner/         │      │      sandbox-api/       │
+│    Interface + agent    │ ───> │     Express (5000)      │ ───> │     Express (4000)      │
+│      tool Invoke.       │      │  Stateful DAST + LLM    │      │   Vulnerable Testbed    │
 └─────────────────────────┘      └─────────────────────────┘      └─────────────────────────┘
 ```
 
