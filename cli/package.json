@@ -1,0 +1,28 @@
+{
+  "name": "sentinel-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Autonomous Terminal Security Agent CLI for SentinelAPI",
+  "type": "module",
+  "bin": {
+    "sentinel": "./bin/sentinel.js",
+    "sentinel-agent": "./bin/sentinel.js"
+  },
+  "main": "./src/index.js",
+  "scripts": {
+    "start": "node ./bin/sentinel.js",
+    "test": "node --test test/cli.test.js"
+  },
+  "dependencies": {
+    "@apidevtools/swagger-parser": "^10.1.1",
+    "@google/genai": "^2.24.0",
+    "boxen": "^7.1.1",
+    "chalk": "^5.3.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^13.1.0",
+    "dotenv": "^16.4.7",
+    "inquirer": "^9.3.7",
+    "ora": "^8.1.1",
+    "yaml": "^2.7.0"
+  }
+}
