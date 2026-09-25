@@ -8,6 +8,9 @@ import chalk from 'chalk';
 import boxen from 'boxen';
 import { runAuditOrchestration } from './orchestrator.js';
 import { generateRemediation } from './llmClient.js';
+import { runAgentChatSession } from './chatSession.js';
+import { cloneOrInspectRepo } from './repoManager.js';
+import { getAgentPersona, listAgentPersonas } from './agentPersonas.js';
 import {
   printBanner,
   renderExecutiveSummary,
@@ -16,6 +19,7 @@ import {
   renderStatus,
   renderDiff,
   renderCurlBox,
+  renderRepoSummary,
 } from './formatter.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -158,6 +162,7 @@ async function runInteractiveFindingLoop(auditResult, context) {
 
     choices.push(new inquirer.Separator());
     choices.push({ name: chalk.cyan('⚡ Verify All Patches against Sandbox Target'), value: 'VERIFY_ALL' });
+    choices.push({ name: chalk.hex('#43f283')('💬 Discuss Findings with Security Agent'), value: 'CHAT_AGENT' });
     choices.push({ name: chalk.yellow('💾 Export Findings to JSON file'), value: 'EXPORT' });
     choices.push({ name: chalk.dim('🚪 Exit Agent'), value: 'EXIT' });
 
@@ -175,6 +180,15 @@ async function runInteractiveFindingLoop(auditResult, context) {
       running = false;
       console.log(chalk.dim('\nSession closed. Stay secure!\n'));
       break;
+    }
+
+    if (selected === 'CHAT_AGENT') {
+      await runAgentChatSession({
+        agent: 'owasp_auditor',
+        apiKey: context.apiKey,
+        target: context.targetUrl,
+      });
+      continue;
     }
 
     if (selected === 'EXPORT') {
@@ -363,6 +377,154 @@ async function runInteractiveWizard() {
   printBanner();
   const fileConfig = loadConfigFile();
 
+  const { mode } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'mode',
+      message: chalk.bold.white('What would you like Sentinel to do?'),
+      choices: [
+        {
+          name: `${chalk.hex('#43f283')('🛡️  Run Automated Security Audit')} - Probe API endpoints with OWASP Top 10 rules`,
+          value: 'SCAN',
+        },
+        {
+          name: `${chalk.hex('#38bdf8')('💬 Chat with Security Agent')} - Interactive coding, architecture & integration copilot`,
+          value: 'CHAT',
+        },
+        {
+          name: `${chalk.hex('#fbbf24')('🐙 Clone & Audit GitHub Repository')} - Clone a remote repo locally and inspect specs/routes`,
+          value: 'CLONE',
+        },
+        {
+          name: `${chalk.hex('#818cf8')('⚡ Verify Sandbox Patch')} - Test patch toggling against live sandbox`,
+          value: 'VERIFY',
+        },
+        {
+          name: `${chalk.hex('#f43f5e')('🛠️  Generate AI Remediation Diff')} - Create git diff patch for vulnerability`,
+          value: 'REMEDIATE',
+        },
+        {
+          name: chalk.dim('🚪 Exit'),
+          value: 'EXIT',
+        },
+      ],
+    },
+  ]);
+
+  if (mode === 'EXIT') {
+    console.log(chalk.dim('\nGoodbye!\n'));
+    return;
+  }
+
+  if (mode === 'CHAT') {
+    const { agentChoice } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'agentChoice',
+        message: 'Select an AI Security Agent to pair program with:',
+        choices: listAgentPersonas().map((p) => ({
+          name: `[${p.badge}] ${p.name} - ${chalk.dim(p.shortDesc)}`,
+          value: p.id,
+        })),
+      },
+    ]);
+
+    await runAgentChatSession({
+      agent: agentChoice,
+      apiKey: fileConfig.geminiApiKey || process.env.GEMINI_API_KEY,
+    });
+    return;
+  }
+
+  if (mode === 'CLONE') {
+    const { repoUrl } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'repoUrl',
+        message: 'Enter GitHub Repository URL (e.g. https://github.com/org/repo or owner/repo):',
+      },
+    ]);
+
+    if (!repoUrl) return;
+
+    const spinner = ora(`Cloning repository ${repoUrl}...`).start();
+    try {
+      const info = cloneOrInspectRepo(repoUrl);
+      spinner.succeed(`Cloned and inspected repository: ${info.repoName}`);
+      console.log(renderRepoSummary(info));
+
+      const { nextAction } = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'nextAction',
+          message: 'What next with this cloned repository?',
+          choices: [
+            { name: '💬 Chat with Security Agent about this codebase', value: 'CHAT' },
+            { name: '🛡️  Scan API if running locally', value: 'SCAN' },
+            { name: '🚪 Back to main', value: 'BACK' },
+          ],
+        },
+      ]);
+
+      if (nextAction === 'CHAT') {
+        await runAgentChatSession({
+          repo: info.workspacePath,
+          apiKey: fileConfig.geminiApiKey || process.env.GEMINI_API_KEY,
+        });
+      }
+    } catch (err) {
+      spinner.fail(`Failed to clone: ${err.message}`);
+    }
+    return;
+  }
+
+  if (mode === 'VERIFY') {
+    const { patchId } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'patchId',
+        message: 'Enter Patch ID to verify (e.g. bola-orders):',
+        default: 'bola-orders',
+      },
+    ]);
+    const targetUrl = fileConfig.target || fileConfig.defaultTargetUrl || 'http://localhost:4000';
+    const res = await toggleSandboxPatch(targetUrl, patchId, true);
+    if (res.ok) {
+      console.log(chalk.green.bold(`\n✔ Patch ${chalk.yellow(patchId)} applied on ${targetUrl}\n`));
+    } else {
+      console.error(chalk.red(`\n✖ Verification failed: ${res.data?.error || res.status}\n`));
+    }
+    return;
+  }
+
+  if (mode === 'REMEDIATE') {
+    const { patchId } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'patchId',
+        message: 'Enter finding or patch ID to remediate:',
+        default: 'bola-orders',
+      },
+    ]);
+    const rem = await generateRemediation({
+      patchId,
+      title: 'BOLA Vulnerability',
+      method: 'GET',
+      path: '/api/orders/{id}',
+      severity: 'CRITICAL',
+    }, { apiKey: fileConfig.geminiApiKey || process.env.GEMINI_API_KEY });
+
+    console.log(boxen(renderDiff(rem.diff), {
+      padding: 1,
+      borderStyle: 'round',
+      borderColor: '#43f283',
+      backgroundColor: '#0a0b0e',
+      title: chalk.bold.hex('#43f283')(` AI Remediation Patch (${patchId}) `),
+    }));
+    return;
+  }
+
+  // mode === 'SCAN'
   const answers = await inquirer.prompt([
     {
       type: 'input',
@@ -430,6 +592,42 @@ export async function createProgram() {
     .option('--api-key <key>', 'Override Google Gemini API Key')
     .action(async (options) => {
       await executeScan(options);
+    });
+
+  // Command: chat / agent
+  program
+    .command('chat')
+    .alias('agent')
+    .description('Launch interactive conversational AI security agent with persona customization')
+    .option('-a, --agent <personaId>', 'Agent persona: owasp_auditor, secure_integrator, remediation_copilot, pentester')
+    .option('-r, --repo <urlOrPath>', 'Target GitHub repo URL or local workspace path to inspect')
+    .option('-s, --spec <path>', 'Path to OpenAPI spec file')
+    .option('-t, --target <url>', 'Target running API base URL')
+    .option('--api-key <key>', 'Override Gemini API key')
+    .action(async (options) => {
+      await runAgentChatSession(options);
+    });
+
+  // Command: clone
+  program
+    .command('clone <repoUrl>')
+    .description('Clone a GitHub repository locally and auto-discover OpenAPI specs and routes')
+    .option('-d, --dest <dir>', 'Destination directory')
+    .option('-j, --json', 'Output raw JSON summary')
+    .action((repoUrl, options) => {
+      const spinner = ora(`Cloning repository ${chalk.cyan(repoUrl)}...`).start();
+      try {
+        const info = cloneOrInspectRepo(repoUrl, { targetDir: options.dest });
+        spinner.succeed(`Cloned repository to ${chalk.bold(info.workspacePath)}`);
+        if (options.json) {
+          console.log(JSON.stringify(info, null, 2));
+        } else {
+          console.log(renderRepoSummary(info));
+        }
+      } catch (err) {
+        spinner.fail(`Failed to clone repository: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   // Command: verify
