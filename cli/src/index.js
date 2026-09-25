@@ -11,10 +11,13 @@ import { generateRemediation } from './llmClient.js';
 import { runAgentChatSession } from './chatSession.js';
 import { cloneOrInspectRepo } from './repoManager.js';
 import { getAgentPersona, listAgentPersonas } from './agentPersonas.js';
+import { createSessionRecorder } from './sessionRecorder.js';
 import {
   printBanner,
   renderExecutiveSummary,
   renderFindingsTable,
+  renderControlsTable,
+  renderDetailedFindingCard,
   renderSeverity,
   renderStatus,
   renderDiff,
@@ -112,9 +115,39 @@ export async function executeScan(options = {}) {
     return;
   }
 
-  // Print Executive Summary & Formatted Table
+  // Print Executive Summary, Formatted Table & Controls
   console.log(renderExecutiveSummary(auditResult));
   console.log(renderFindingsTable(auditResult.findings || []));
+  if (auditResult.controls && auditResult.controls.length > 0) {
+    console.log(renderControlsTable(auditResult.controls));
+  }
+
+  if (options.detailed && auditResult.findings) {
+    for (const f of auditResult.findings) {
+      console.log(renderDetailedFindingCard(f));
+    }
+  }
+
+  // Dynamically generate session report file
+  try {
+    const recorder = createSessionRecorder({
+      agent: getAgentPersona('owasp_auditor'),
+      workspaceContext: {
+        workspacePath: process.cwd(),
+        targetUrl,
+        specPath: specPathOrUrl,
+        specSummary: `Analyzed ${auditResult.endpointsCount || 0} endpoints`,
+      },
+      sessionType: 'security_scan',
+    });
+    recorder.logAudit(auditResult);
+    const logFile = recorder.finalize();
+    if (!isJson && !isQuiet) {
+      console.log(chalk.cyan(`📄 Dynamic scan report saved to: ${chalk.bold(logFile)}`));
+    }
+  } catch (_e) {
+    // ignore recording error
+  }
 
   // Run interactive finding triage loop if in TTY
   const isInteractive = options.interactive !== false && Boolean(process.stdin.isTTY);
@@ -587,6 +620,7 @@ export async function createProgram() {
     .option('-i, --interactive', 'Run interactive finding triage session in terminal')
     .option('--no-interactive', 'Disable interactive prompts (for CI/CD scripts)')
     .option('-j, --json', 'Output raw JSON report')
+    .option('-d, --detailed', 'Output comprehensive root-cause analysis, reproduction steps and evidence cards')
     .option('-q, --quiet', 'Suppress branding banner and spinner logs')
     .option('--fail-on <severity>', 'Exit with error code 1 if findings meet or exceed severity (critical, high, medium, low)')
     .option('--api-key <key>', 'Override Google Gemini API Key')

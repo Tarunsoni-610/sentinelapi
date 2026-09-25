@@ -6,3 +6,5 @@ dist
 .DS_Store
 .vite
 sentinel-report-*.json
+sentinel-reports/
+
