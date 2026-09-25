@@ -120,4 +120,19 @@ describe('Sentinel-Agent CLI ESM Integration Tests', () => {
     assert.ok(chatResponse.text.includes('BOLA'));
     assert.ok(chatResponse.text.includes('Broken Object Level Authorization'));
   });
+
+  test('sentinel config show and set operates on configuration', () => {
+    const showRes = runCli('config show --json');
+    assert.strictEqual(showRes.status, 0);
+    const cfg = JSON.parse(showRes.stdout);
+    assert.ok(cfg.target);
+    assert.ok(cfg.spec);
+
+    const setRes = runCli('config set failOn critical');
+    assert.strictEqual(setRes.status, 0);
+    assert.match(setRes.stdout, /Configuration updated/);
+
+    // Reset back to high
+    runCli('config set failOn high');
+  });
 });
