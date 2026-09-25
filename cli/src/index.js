@@ -599,10 +599,62 @@ async function runInteractiveWizard() {
   });
 }
 
+export function normalizeCliArgs(argv = process.argv) {
+  const args = [...argv];
+  const knownCommands = ['scan', 'chat', 'agent', 'clone', 'verify', 'remediate', 'config', 'help', '--help', '-h', '--version', '-V'];
+
+  const userArgs = args.slice(2);
+  if (userArgs.length === 0) {
+    return args;
+  }
+
+  // If a known command is already specified at the start, don't alter
+  if (knownCommands.includes(userArgs[0])) {
+    return args;
+  }
+
+  // Handle explicit --scan, --chat, --remediate, --verify flag conversion
+  const scanIndex = userArgs.indexOf('--scan');
+  if (scanIndex !== -1) {
+    args[2 + scanIndex] = 'scan';
+    return args;
+  }
+
+  const chatIndex = userArgs.findIndex((a) => a === '--chat' || a === '--agent');
+  if (chatIndex !== -1) {
+    args[2 + chatIndex] = 'chat';
+    return args;
+  }
+
+  const verifyIndex = userArgs.indexOf('--verify');
+  if (verifyIndex !== -1) {
+    args[2 + verifyIndex] = 'verify';
+    return args;
+  }
+
+  const remediateIndex = userArgs.indexOf('--remediate');
+  if (remediateIndex !== -1) {
+    args[2 + remediateIndex] = 'remediate';
+    return args;
+  }
+
+  // If scan flags are passed without an explicit command, default to 'scan'
+  const scanFlags = ['--detailed', '-d', '--target', '-t', '--modules', '-m', '--fail-on', '--no-interactive', '--json', '-j', '--quiet', '-q', '--spec', '-s'];
+  const hasScanFlag = userArgs.some((arg) => scanFlags.includes(arg));
+  const hasAnyCommand = userArgs.some((arg) => knownCommands.includes(arg));
+
+  if (hasScanFlag && !hasAnyCommand) {
+    args.splice(2, 0, 'scan');
+  }
+
+  return args;
+}
+
 /**
  * Creates and registers the Commander program.
  */
-export async function createProgram() {
+export async function createProgram(rawArgv = process.argv) {
+  const normalizedArgv = normalizeCliArgs(rawArgv);
   const program = new Command();
 
   program
@@ -751,7 +803,7 @@ export async function createProgram() {
     });
 
   // If invoked without any subcommand and in TTY -> Launch interactive wizard
-  if (process.argv.length <= 2) {
+  if (normalizedArgv.length <= 2) {
     if (process.stdin.isTTY) {
       await runInteractiveWizard();
       return null;
@@ -762,5 +814,6 @@ export async function createProgram() {
     }
   }
 
+  program.normalizedArgv = normalizedArgv;
   return program;
 }

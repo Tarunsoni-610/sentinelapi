@@ -11,6 +11,11 @@
   "main": "./src/index.js",
   "scripts": {
     "start": "node ./bin/sentinel.js",
+    "scan": "node ./bin/sentinel.js scan",
+    "scan:detailed": "node ./bin/sentinel.js scan --detailed",
+    "scan:json": "node ./bin/sentinel.js scan --json",
+    "chat": "node ./bin/sentinel.js chat",
+    "verify": "node ./bin/sentinel.js verify",
     "test": "node --test test/cli.test.js"
   },
   "dependencies": {
