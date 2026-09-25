@@ -11,6 +11,7 @@ import { renderAgentHeader, renderRepoSummary, renderDiff } from './formatter.js
 import { parseOpenApiSpec } from './specParser.js';
 import { runAuditOrchestration } from './orchestrator.js';
 import { loadConfig, updateConfigKey } from './configManager.js';
+import { createSessionRecorder } from './sessionRecorder.js';
 
 export async function runAgentChatSession(initialOptions = {}) {
   let activeAgentId = initialOptions.agent || 'owasp_auditor';
@@ -51,8 +52,16 @@ export async function runAgentChatSession(initialOptions = {}) {
     }
   }
 
+  // Initialize dynamic session recorder text file
+  const recorder = createSessionRecorder({
+    agent: activeAgent,
+    workspaceContext,
+    sessionType: 'interactive_chat',
+  });
+
   console.log(renderAgentHeader(activeAgent, workspaceContext));
-  console.log(chalk.dim('Type your question or code inquiry below. Special commands: /agent, /repo, /file, /spec, /scan, /help, /exit\n'));
+  console.log(chalk.cyan(`📄 Live agent session log dynamically recording to: ${chalk.bold(recorder.filePath)}`));
+  console.log(chalk.dim('Type your question or code inquiry below. Special commands: /agent, /repo, /file, /spec, /config, /scan, /help, /exit\n'));
 
   let inChat = true;
 
@@ -74,13 +83,17 @@ export async function runAgentChatSession(initialOptions = {}) {
       const command = parts[0].toLowerCase();
       const arg = parts.slice(1).join(' ').trim();
 
+      recorder.logEvent(`command_${command}`, { arg });
+
       switch (command) {
         case 'exit':
         case 'quit':
-        case 'q':
+        case 'q': {
           inChat = false;
-          console.log(chalk.dim('\nReturning from agent chat...\n'));
+          const logPath = recorder.finalize();
+          console.log(chalk.green(`\n✔ Session transcript finalized: ${chalk.bold(logPath)}\n`));
           break;
+        }
 
         case 'help':
           printChatHelp();
@@ -90,6 +103,8 @@ export async function runAgentChatSession(initialOptions = {}) {
           if (arg) {
             activeAgent = getAgentPersona(arg);
             activeAgentId = activeAgent.id;
+            recorder.agent = activeAgent;
+            recorder.logEvent('switch_agent', { name: activeAgent.name, id: activeAgent.id });
             console.log(`\nSwitched active agent to: ${chalk.bold.hex(activeAgent.badgeColor)(activeAgent.name)}\n`);
           } else {
             const { chosen } = await inquirer.prompt([
@@ -105,6 +120,8 @@ export async function runAgentChatSession(initialOptions = {}) {
             ]);
             activeAgent = getAgentPersona(chosen);
             activeAgentId = activeAgent.id;
+            recorder.agent = activeAgent;
+            recorder.logEvent('switch_agent', { name: activeAgent.name, id: activeAgent.id });
             console.log(`\nSwitched active agent to: ${chalk.bold.hex(activeAgent.badgeColor)(activeAgent.name)}\n`);
           }
           break;
@@ -128,6 +145,8 @@ export async function runAgentChatSession(initialOptions = {}) {
               const repoInfo = cloneOrInspectRepo(repoTarget);
               workspaceContext.workspacePath = repoInfo.workspacePath;
               workspaceContext.framework = repoInfo.framework;
+              recorder.workspaceContext = workspaceContext;
+              recorder.logEvent('attach_workspace', repoInfo);
               spinner.succeed(`Workspace loaded: ${repoInfo.repoName}`);
               console.log(renderRepoSummary(repoInfo));
             } catch (err) {
@@ -155,6 +174,7 @@ export async function runAgentChatSession(initialOptions = {}) {
               const content = readWorkspaceFile(workspaceContext.workspacePath, filePath);
               workspaceContext.activeFilePath = filePath;
               workspaceContext.activeFileContent = content;
+              recorder.logEvent('read_file', { filePath, linesCount: content.split('\n').length });
               console.log(chalk.green(`\n✔ Loaded file into agent context: ${chalk.bold(filePath)}\n`));
             } catch (err) {
               console.error(chalk.red(`\n✖ Could not read file: ${err.message}\n`));
@@ -169,6 +189,7 @@ export async function runAgentChatSession(initialOptions = {}) {
           try {
             const parsed = await parseOpenApiSpec(specPath);
             workspaceContext.specSummary = `Spec Title: ${parsed.title}\nEndpoints: ${parsed.endpoints.length} routes.`;
+            recorder.logEvent('load_spec', { title: parsed.title, endpoints: parsed.endpoints.length });
             spinner.succeed(`OpenAPI spec loaded: ${parsed.endpoints.length} endpoints.`);
           } catch (err) {
             spinner.fail(`Spec parse error: ${err.message}`);
@@ -185,6 +206,7 @@ export async function runAgentChatSession(initialOptions = {}) {
               apiKey,
             });
             workspaceContext.activeFindings = result.findings || [];
+            recorder.logAudit(result);
             spinner.succeed(`Audit finished: ${result.findings?.length || 0} findings recorded.`);
           } catch (err) {
             spinner.fail(`Scan failed: ${err.message}`);
@@ -194,6 +216,7 @@ export async function runAgentChatSession(initialOptions = {}) {
 
         case 'clear':
           chatHistory.length = 0;
+          recorder.logEvent('clear_history');
           console.log(chalk.green('\n✔ Chat memory cleared.\n'));
           break;
 
@@ -216,6 +239,7 @@ export async function runAgentChatSession(initialOptions = {}) {
             console.log(chalk.yellow('Usage: /set <key> <value> (e.g. /set target http://localhost:8080)'));
           } else {
             const res = updateConfigKey(key, val);
+            recorder.logEvent('config_update', { key: res.key, value: res.value });
             console.log(chalk.green(`\n✔ Updated ${chalk.bold(res.key)} = ${chalk.cyan(JSON.stringify(res.value))} in sentinel.config.json\n`));
           }
           break;
@@ -247,9 +271,13 @@ export async function runAgentChatSession(initialOptions = {}) {
 
     if (trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'quit') {
       inChat = false;
-      console.log(chalk.dim('\nReturning from agent chat...\n'));
+      const logPath = recorder.finalize();
+      console.log(chalk.green(`\n✔ Session transcript finalized: ${chalk.bold(logPath)}\n`));
       break;
     }
+
+    // Record user turn
+    recorder.logTurn({ role: 'user', message: trimmed });
 
     // Call LLM / Agent
     const spinner = ora(`Consulting ${activeAgent.name}...`).start();
@@ -263,6 +291,9 @@ export async function runAgentChatSession(initialOptions = {}) {
       });
 
       spinner.stop();
+
+      // Record agent reply
+      recorder.logTurn({ role: 'model', message: response.text });
 
       console.log('\n' + boxen(response.text, {
         padding: 1,
@@ -290,7 +321,7 @@ function printChatHelp() {
     `  ${chalk.cyan('/repo <url|path>')}- Clone a remote GitHub repo or set local workspace`,
     `  ${chalk.cyan('/file <relPath>')}  - Read and inject a code file into the agent context`,
     `  ${chalk.cyan('/spec [path]')}     - Parse and load an OpenAPI contract into context`,
-    `  ${chalk.cyan('/config')}          - Display current configuration settings`,
+    `  ${chalk.cyan('/config')}          - Display active configuration settings`,
     `  ${chalk.cyan('/set <key> <val>')} - Update configuration key live (e.g. /set target http://...)`,
     `  ${chalk.cyan('/scan')}            - Run stateful OWASP probe scan against target API`,
     `  ${chalk.cyan('/clear')}           - Reset conversation memory`,

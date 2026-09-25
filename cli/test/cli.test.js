@@ -7,6 +7,9 @@ import { listAgentPersonas, getAgentPersona } from '../src/agentPersonas.js';
 import { chatWithAgent } from '../src/llmClient.js';
 import { cloneOrInspectRepo } from '../src/repoManager.js';
 
+import { createSessionRecorder } from '../src/sessionRecorder.js';
+import fs from 'fs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CLI_BIN = path.resolve(__dirname, '../bin/sentinel.js');
@@ -135,4 +138,30 @@ describe('Sentinel-Agent CLI ESM Integration Tests', () => {
     // Reset back to high
     runCli('config set failOn high');
   });
+
+  test('createSessionRecorder dynamically generates real-time text log file', () => {
+    const testDir = path.resolve(__dirname, '../sentinel-reports');
+    const recorder = createSessionRecorder({
+      agent: getAgentPersona('owasp_auditor'),
+      workspaceContext: { workspacePath: process.cwd(), framework: 'Express / Node.js' },
+      sessionType: 'unit_test_session',
+      outputDir: testDir,
+    });
+
+    assert.ok(fs.existsSync(recorder.filePath));
+    const initialContent = fs.readFileSync(recorder.filePath, 'utf8');
+    assert.match(initialContent, /SENTINEL-AGENT DYNAMIC SESSION AUDIT TRANSCRIPT/);
+    assert.match(initialContent, /OWASP Top 10 Security Auditor/);
+
+    recorder.logTurn({ role: 'user', message: 'Can you check my API?' });
+    recorder.logTurn({ role: 'agent', message: 'I will inspect the endpoints.' });
+    recorder.logEvent('remediation_applied', { patchId: 'bola-orders', status: 'success' });
+    const finalizedPath = recorder.finalize();
+
+    const finalContent = fs.readFileSync(finalizedPath, 'utf8');
+    assert.match(finalContent, /Can you check my API\?/);
+    assert.match(finalContent, /REMEDIATION_APPLIED/i);
+    assert.match(finalContent, /Session Closed:/);
+  });
 });
+
