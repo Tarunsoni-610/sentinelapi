@@ -11,7 +11,7 @@ export function printBanner() {
    ███████║███████╗██║ ╚████║   ██║   ██║██║ ╚████║███████╗███████╗
    ╚══════╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝
   
-  SENTINEL-AGENT • Autonomous Terminal API Security Scanner & Triage v1.0.0
+  SENTINEL-AGENT • Autonomous Terminal API Security Scanner & Agent v1.0.0
   ─────────────────────────────────────────────────────────────────────────────`;
   console.log(chalk.hex('#43f283').bold(banner));
 }
@@ -146,4 +146,73 @@ export function renderFindingsTable(findings) {
   });
 
   return table.toString();
+}
+
+export function renderAgentHeader(agent, workspaceContext = {}) {
+  const badgeColor = agent.badgeColor || '#43f283';
+  const badge = chalk.bgHex(badgeColor).black.bold(` ${agent.badge} `);
+  const name = chalk.bold.white(agent.name);
+  const role = chalk.dim(agent.role);
+  const desc = chalk.hex('#a1a1aa')(agent.shortDesc);
+
+  const lines = [
+    `${badge} ${name} — ${role}`,
+    `${desc}`,
+  ];
+
+  if (workspaceContext.workspacePath) {
+    lines.push('');
+    lines.push(`${chalk.bold.hex('#818cf8')('Workspace:')} ${chalk.cyan(workspaceContext.workspacePath)} ${workspaceContext.framework ? chalk.dim(`[${workspaceContext.framework}]`) : ''}`);
+  }
+
+  return boxen(lines.join('\n'), {
+    padding: 1,
+    margin: { top: 0, bottom: 1 },
+    borderStyle: 'round',
+    borderColor: badgeColor,
+    backgroundColor: '#12141a',
+    title: chalk.bold.hex(badgeColor)(' ACTIVE SECURITY AGENT '),
+    titleAlignment: 'left',
+  });
+}
+
+export function renderRepoSummary(repoInfo) {
+  const lines = [
+    `${chalk.bold.white('Repository:')} ${chalk.hex('#43f283').bold(repoInfo.repoName || 'Local Workspace')}`,
+    `${chalk.bold.white('Local Path:')}  ${chalk.cyan(repoInfo.workspacePath)}`,
+    `${chalk.bold.white('Framework:')}   ${chalk.yellow(repoInfo.framework || 'Generic')}`,
+    '',
+    chalk.bold.hex('#818cf8')(`Discovered OpenAPI Specifications (${repoInfo.specFiles?.length || 0}):`),
+  ];
+
+  if (repoInfo.specFiles && repoInfo.specFiles.length > 0) {
+    repoInfo.specFiles.forEach((s) => {
+      lines.push(`  • ${chalk.white(s.relPath)}`);
+    });
+  } else {
+    lines.push(chalk.dim('  (No standard openapi.yaml / swagger.json discovered in root)'));
+  }
+
+  lines.push('');
+  lines.push(chalk.bold.hex('#818cf8')(`Identified API Controllers & Routes (${repoInfo.routeFiles?.length || 0}):`));
+
+  if (repoInfo.routeFiles && repoInfo.routeFiles.length > 0) {
+    repoInfo.routeFiles.slice(0, 8).forEach((r) => {
+      lines.push(`  • ${chalk.white(r.relPath)}`);
+    });
+    if (repoInfo.routeFiles.length > 8) {
+      lines.push(chalk.dim(`  ... and ${repoInfo.routeFiles.length - 8} more files`));
+    }
+  } else {
+    lines.push(chalk.dim('  (No standard route files detected)'));
+  }
+
+  return boxen(lines.join('\n'), {
+    padding: 1,
+    margin: { top: 0, bottom: 1 },
+    borderStyle: 'round',
+    borderColor: '#43f283',
+    backgroundColor: '#12141a',
+    title: chalk.bold.hex('#43f283')(' REPOSITORY WORKSPACE INSPECTION '),
+  });
 }

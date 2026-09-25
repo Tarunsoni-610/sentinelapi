@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { execSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { listAgentPersonas, getAgentPersona } from '../src/agentPersonas.js';
+import { chatWithAgent } from '../src/llmClient.js';
+import { cloneOrInspectRepo } from '../src/repoManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,11 +41,13 @@ describe('Sentinel-Agent CLI ESM Integration Tests', () => {
     } catch (_e) {}
   });
 
-  test('sentinel --help displays help and scan command', () => {
+  test('sentinel --help displays help, scan, chat, clone, verify, remediate commands', () => {
     const res = runCli('--help');
     assert.strictEqual(res.status, 0);
     assert.match(res.stdout, /Usage: sentinel/);
     assert.match(res.stdout, /scan/);
+    assert.match(res.stdout, /chat/);
+    assert.match(res.stdout, /clone/);
     assert.match(res.stdout, /verify/);
     assert.match(res.stdout, /remediate/);
   });
@@ -87,5 +92,32 @@ describe('Sentinel-Agent CLI ESM Integration Tests', () => {
     const data = JSON.parse(res.stdout);
     assert.strictEqual(data.patchId, 'bola-orders');
     assert.strictEqual(data.isFixed, true);
+  });
+
+  test('sentinel clone local workspace discovers specs and routes', () => {
+    const res = runCli('clone ./ --json');
+    assert.strictEqual(res.status, 0);
+    const data = JSON.parse(res.stdout);
+    assert.ok(data.workspacePath);
+    assert.ok(Array.isArray(data.specFiles));
+    assert.ok(Array.isArray(data.routeFiles));
+  });
+
+  test('agent personas and chatWithAgent local offline fallback generation', async () => {
+    const personas = listAgentPersonas();
+    assert.ok(personas.length >= 4);
+
+    const auditor = getAgentPersona('owasp_auditor');
+    assert.strictEqual(auditor.id, 'owasp_auditor');
+
+    const integrator = getAgentPersona('secure_integrator');
+    assert.strictEqual(integrator.id, 'secure_integrator');
+
+    const chatResponse = await chatWithAgent({
+      message: 'How do I prevent BOLA vulnerabilities?',
+      agentId: 'owasp_auditor',
+    });
+    assert.ok(chatResponse.text.includes('BOLA'));
+    assert.ok(chatResponse.text.includes('Broken Object Level Authorization'));
   });
 });

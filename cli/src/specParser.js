@@ -112,3 +112,6 @@ export async function parseSpec(specPathOrUrl) {
     raw: rawContent,
   };
 }
+
+export const parseOpenApiSpec = parseSpec;
+

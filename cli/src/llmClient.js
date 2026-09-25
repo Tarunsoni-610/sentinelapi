@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { getAgentPersona } from './agentPersonas.js';
 
 // High-fidelity fallback heuristic diffs and explanations
 const FALLBACK_REMEDIATIONS = {
@@ -106,10 +107,6 @@ router.post('/login', loginLimiter, (req, res) => {
 
 /**
  * Generates AI-powered remediation diffs using Google Gemini.
- *
- * @param {object} finding - The vulnerability finding object
- * @param {object} [options] - Options with apiKey and model
- * @returns {Promise<object>}
  */
 export async function generateRemediation(finding, options = {}) {
   const apiKey = options.apiKey || process.env.GEMINI_API_KEY;
@@ -152,7 +149,7 @@ Respond strictly with valid JSON with these exact keys:
         aiGenerated: true,
         ...parsed,
       };
-    } catch (err) {
+    } catch (_err) {
       // Fallback if API key fails or network error occurs
     }
   }
@@ -178,4 +175,200 @@ Respond strictly with valid JSON with these exact keys:
     fixedCode: `// Fixed implementation for ${finding.method} ${finding.path}`,
     securityStandard: finding.owaspCategory || 'OWASP API Security Top 10',
   };
+}
+
+/**
+ * Executes a conversational turn with a customized Sentinel Security Agent.
+ *
+ * @param {object} params
+ * @param {string} params.message - The user's input prompt
+ * @param {string} [params.agentId] - 'owasp_auditor' | 'secure_integrator' | 'remediation_copilot' | 'pentester'
+ * @param {object} [params.context] - Workspace, OpenAPI spec, and finding context
+ * @param {Array} [params.history] - Array of { role: 'user' | 'model', text: string }
+ * @param {string} [params.apiKey] - Google Gemini API Key
+ * @param {string} [params.model] - Model name (default: gemini-2.5-flash)
+ */
+export async function chatWithAgent(params) {
+  const {
+    message,
+    agentId = 'owasp_auditor',
+    context = {},
+    history = [],
+    apiKey = process.env.GEMINI_API_KEY,
+    model = 'gemini-2.5-flash',
+  } = params;
+
+  const agent = getAgentPersona(agentId);
+
+  // Build grounded context summary
+  let contextBlock = '';
+  if (context.workspacePath) {
+    contextBlock += `\nLocal Workspace / Cloned Repo: ${context.workspacePath}`;
+  }
+  if (context.framework) {
+    contextBlock += `\nDetected API Framework: ${context.framework}`;
+  }
+  if (context.specSummary) {
+    contextBlock += `\nOpenAPI Schema Summary:\n${context.specSummary}`;
+  }
+  if (context.activeFindings && context.activeFindings.length > 0) {
+    contextBlock += `\nActive Security Findings (${context.activeFindings.length}):\n` +
+      context.activeFindings.map((f, i) => `${i + 1}. [${f.severity}] ${f.title} (${f.method} ${f.path})`).join('\n');
+  }
+  if (context.activeFileContent) {
+    contextBlock += `\nActive File Content (${context.activeFilePath || 'source'}):\n\`\`\`\n${context.activeFileContent}\n\`\`\``;
+  }
+
+  const systemInstruction = `${agent.systemPrompt}\n\nCURRENT REPOSITORY & SCAN CONTEXT:\n${contextBlock || 'No active workspace attached.'}\n\nProvide direct, actionable, and secure advice formatted in clean markdown.`;
+
+  if (apiKey) {
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+
+      const contents = [];
+      // Include past turns
+      for (const turn of history.slice(-8)) {
+        contents.push({
+          role: turn.role === 'user' ? 'user' : 'model',
+          parts: [{ text: turn.text }],
+        });
+      }
+      // Add current user prompt
+      contents.push({
+        role: 'user',
+        parts: [{ text: message }],
+      });
+
+      const response = await ai.models.generateContent({
+        model,
+        contents,
+        config: {
+          systemInstruction,
+          temperature: 0.3,
+        },
+      });
+
+      return {
+        text: response.text,
+        agent,
+        provider: 'gemini',
+      };
+    } catch (_err) {
+      // Fall through to local fallback generator
+    }
+  }
+
+  // Smart local heuristic fallback agent
+  const responseText = generateLocalAgentResponse({ message, agent, context });
+  return {
+    text: responseText,
+    agent,
+    provider: 'local_heuristic',
+  };
+}
+
+/**
+ * Intelligent local response generator for offline and non-API key sessions.
+ */
+function generateLocalAgentResponse({ message, agent, context }) {
+  const lower = message.toLowerCase();
+
+  if (lower.includes('bola') || lower.includes('idor')) {
+    return `### 🛡️ ${agent.name} • BOLA / IDOR Analysis
+
+**Vulnerability Concept**: Broken Object Level Authorization occurs when an endpoint accepts an object ID from client input (e.g. \`/api/orders/:id\`) and accesses database records without asserting that the requesting user owns that object.
+
+**Secure Implementation Example (Express / Node.js)**:
+\`\`\`javascript
+// 🔒 Secure Object Access Pattern
+router.get('/orders/:id', authenticateToken, async (req, res) => {
+  const orderId = req.params.id;
+  const order = await db.orders.findById(orderId);
+
+  if (!order) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+
+  // Explicit Tenant / Owner Check
+  if (order.userId !== req.user.id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden: You do not own this resource.' });
+  }
+
+  return res.json(order);
+});
+\`\`\`
+`;
+  }
+
+  if (lower.includes('auth') || lower.includes('jwt') || lower.includes('token') || lower.includes('login')) {
+    return `### 🔒 ${agent.name} • Authentication & Token Hardening
+
+**Security Recommendation**:
+1. **Never store JWTs in \`localStorage\`** in frontend apps due to XSS theft risks. Use **\`/HttpOnly; Secure; SameSite=Strict\`** cookies.
+2. **Implement short-lived Access Tokens** (15 mins) paired with rotating Refresh Tokens stored securely in the database.
+3. **Verify algorithm explicitly** on verification to prevent \`alg: none\` bypasses:
+
+\`\`\`javascript
+import jwt from 'jsonwebtoken';
+
+export function verifyAccessToken(token) {
+  return jwt.verify(token, process.env.JWT_SECRET, {
+    algorithms: ['HS256'],
+    issuer: 'sentinel.internal',
+  });
+}
+\`\`\`
+`;
+  }
+
+  if (lower.includes('rate') || lower.includes('limit') || lower.includes('brute')) {
+    return `### ⏱️ ${agent.name} • Rate Limiting & Resource Protection
+
+**Recommendation**: Protect sensitive routes (\`/api/auth/login\`, \`/api/auth/register\`, \`/api/orders\`) using sliding window rate limiting.
+
+\`\`\`javascript
+import rateLimit from 'express-rate-limit';
+
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 requests per window
+  standardHeaders: true, // Return RateLimit-* headers
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please retry after 15 minutes.' }
+});
+\`\`\`
+`;
+  }
+
+  if (lower.includes('diff') || lower.includes('patch') || lower.includes('fix')) {
+    return `### 🛠️ ${agent.name} • Unified Remediation Diff
+
+\`\`\`diff
+--- a/src/routes/api.js
++++ b/src/routes/api.js
+@@ -14,6 +14,9 @@
+ router.get('/resource/:id', authenticate, async (req, res) => {
+   const item = await store.getItem(req.params.id);
+   if (!item) return res.status(404).json({ error: 'not_found' });
++  if (item.tenantId !== req.user.tenantId) {
++    return res.status(403).json({ error: 'forbidden' });
++  }
+   res.json(item);
+ });
+\`\`\`
+`;
+  }
+
+  return `### 🤖 ${agent.name}
+
+I am active and monitoring your local workspace${context.workspacePath ? ` at \`${context.workspacePath}\`` : ''}.
+
+**Capabilities you can invoke**:
+- Ask me to audit specific routes (e.g. \`"Audit my user controller for excessive data exposure"\`)
+- Request secure API client integration code with HMAC signing, token refresh, or Zod validation
+- Ask for reproducible cURL exploit PoCs to verify your sandbox endpoints
+- Type \`/spec <path>\` to load your OpenAPI schema into context
+- Type \`/file <path>\` to read and inspect a local source file
+- Type \`/scan\` to execute live OWASP Top 10 security probes
+`;
 }
